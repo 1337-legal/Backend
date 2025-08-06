@@ -7,6 +7,12 @@ class UserRepository extends BaseRepository {
         return this.prisma.user.findUnique({ where: { id } });
     }
 
+    async findUserByPublicKey(publicKey: string) {
+        return this.prisma.user.findFirst({
+            where: { publicKey }
+        });
+    }
+
     async createUser(data: Prisma.UserCreateInput) {
         return this.prisma.user.create({ data });
     }

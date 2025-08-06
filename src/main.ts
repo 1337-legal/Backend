@@ -1,7 +1,3 @@
-import { Elysia } from "elysia";
+import ListenerService from '@Services/ListenerService';
 
-const app = new Elysia().get("/", () => "Hello Elysia").listen(3000);
-
-console.log(
-  `🦊 Elysia is running at ${app.server?.hostname}:${app.server?.port}`
-);
+ListenerService.start(3000);

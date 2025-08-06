@@ -1,5 +1,5 @@
 type UserType = {
-    username: string;
+    publicKey: string;
     role: string;
-    sessionKey: Uint8Array;
+    encryptedSessionKey: string;
 };
