@@ -1,35 +1,73 @@
-import Elysia from 'elysia';
+import Elysia, { ElysiaConfig } from 'elysia';
+import authRouter from 'src/routes/auth';
 
 import cors from '@elysiajs/cors';
 import jwt from '@elysiajs/jwt';
 import swagger from '@elysiajs/swagger';
 
-export const app = new Elysia()
-    .use(swagger())
-    .use(
-        jwt({
-            name: "jwt",
-            secret: Bun.env.JWT_SECRET as string,
-        })
-    )
-    .use(
-        cors({
-            origin: "*",
-            methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-            maxAge: 3600,
-            allowedHeaders: ["Content-Type", "Authorization"],
-            credentials: true,
-        })
-    )
-    .derive(async ({ headers, jwt }) => {
-        const token = headers["authorization"];
+import BaseService from './BaseService';
 
-        const payload = (await jwt.verify(token)) as UserType | false;
-        if (!payload) {
-            return { user: null };
-        }
+class ListenerService extends BaseService {
+    app: ReturnType<typeof this.generateApp>;
+    env: { [key: string]: string | undefined; };
 
-        return { user: payload };
-    });
+    constructor(config?: ElysiaConfig<any>) {
+        super();
+        this.env = this.getEnvironmentVariables([
+            "JWT_SECRET"
+        ]);
 
-export type AppType = typeof app;
+        this.app = this.generateApp(config);
+
+        this.setupRoutes([
+            authRouter
+        ]);
+    }
+
+    public generateApp(config?: ElysiaConfig<any>) {
+        return new Elysia(config).use(swagger())
+            .use(
+                jwt({
+                    name: "jwt",
+                    secret: this.env.JWT_SECRET as string,
+                })
+            )
+            .use(
+                cors({
+                    origin: "*",
+                    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+                    maxAge: 3600,
+                    allowedHeaders: ["Content-Type", "Authorization"],
+                    credentials: true,
+                })
+            )
+            .derive(async ({ headers, jwt }) => {
+                const token = headers["authorization"];
+
+                const payload = (await jwt.verify(token)) as UserType | false;
+                if (!payload) {
+                    return { user: null };
+                }
+
+                return { user: payload };
+            });
+    }
+
+    public setupRoutes(routers: (typeof this.app)[]) {
+        this.app.group("/api/v1", (group) => {
+            for (const router of routers) {
+                group.use(router);
+            }
+
+            return group;
+        });
+    }
+
+    public start(port: number) {
+        this.app.listen(port);
+
+        console.log(`🦊 Elegant Elysia is running at ${this.app.server?.hostname}:${this.app.server?.port}`);
+    }
+}
+
+export default new ListenerService();
