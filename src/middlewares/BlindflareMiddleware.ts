@@ -1,6 +1,8 @@
 import type { Context } from "elysia";
 
-import BlindflareService, { EncryptedData } from '@Services/BlindflareService';
+import BlindflareService, {
+    BlindflareResponseBody, EncryptedData
+} from '@Services/BlindflareService';
 
 import BaseMiddleware from './BaseMiddleware';
 
@@ -11,15 +13,24 @@ interface UserType {
 }
 
 class BlindflareMiddleware extends BaseMiddleware {
-    async handleAuthResponse(context: Context & { response: unknown; user: UserType | null }) {
-        if (!context.user) {
-            return this.error(401, "You need to be logged in to access this feature.");
-        }
+    constructor() {
+        super();
+
+        this.handleAuthResponse = this.handleAuthResponse.bind(this);
+        this.handleResponse = this.handleResponse.bind(this);
+        this.handleRequest = this.handleRequest.bind(this);
+    }
+
+    public async handleAuthResponse(context: Context & { response: unknown; user: UserType | null }) {
+        //if (!context.user) {
+        //    return this.error(401, "You need to be logged in to access this feature.");
+        //}
+        const { publicKey } = context.body as BlindflareResponseBody;
 
         try {
             context.response = BlindflareService.encryptWithECC(
                 JSON.stringify(context.response),
-                context.user.publicKey
+                context.body.publicKey
             );
 
             return {
@@ -35,13 +46,14 @@ class BlindflareMiddleware extends BaseMiddleware {
     }
 
     async handleResponse(context: Context & { response: unknown; user: UserType | null }) {
-        if (!context.user) {
-            return this.error(401, "You need to be logged in to access this feature.");
+        const body = context.body as { blindflare?: { type?: string } };
+        console.log(body)
+        if (body.blindflare && body.blindflare.type === "AUTH") {
+            return await this.handleAuthResponse(context);
         }
 
-        const body = context.body as { blindflare?: { type?: string } };
-        if (body.blindflare && body.blindflare.type === "AUTH") {
-            return this.handleAuthResponse(context);
+        if (!context.user) {
+            return this.error(401, "You need to be logged in to access this feature.");
         }
 
         try {
@@ -60,12 +72,12 @@ class BlindflareMiddleware extends BaseMiddleware {
         }
     }
 
-    async handleRequest(context: Context & { user: UserType | null; body?: { data?: EncryptedData; blindflare?: unknown } }) {
+    async handleRequest(context: Context & { user: UserType | null; body?: BlindflareResponseBody }) {
         if (!context.user) {
             return this.error(401, "You need to be logged in to access this feature.");
         }
 
-        if (!context.body || !context.body.data || !context.body.blindflare) {
+        if (!context.body || !context.body.blindflare.payload || !context.body.blindflare) {
             return this.error(400, "Blindflare: Invalid request body.");
         }
 

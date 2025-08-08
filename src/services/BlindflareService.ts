@@ -1,18 +1,30 @@
 import crypto from 'crypto';
+import { ec as EC } from 'elliptic';
 
 import BaseService from './BaseService';
 
-interface BlindflareConfig {
+// Initialize secp256k1 curve
+const ec = new EC('secp256k1');
+
+type BlindflareConfig = {
     algorithm: string;
     keyLength: number;
     ivLength: number;
 }
 
-export interface EncryptedData {
+export type EncryptedData = {
     data: string;
     iv: string;
     tag?: string;
     ephemeralPublicKey?: string; // For ECC encryption
+}
+
+export type BlindflareResponseBody = {
+    blindflare: {
+        payload?: EncryptedData;
+        type: string;
+        version: string;
+    }
 }
 
 interface BlindflareKey {
@@ -201,38 +213,159 @@ class BlindflareService extends BaseService {
     }
 
     /**
-     * Generate digital signature
+     * Generate digital signature using elliptic curve
      */
     signData(data: string, privateKey: string): string {
-        const sign = crypto.createSign('SHA256');
-        sign.update(data);
-        return sign.sign(privateKey, 'hex');
+        try {
+            // Convert PEM private key to elliptic private key
+            const ellipticPrivateKey = this.pemToEllipticPrivateKey(privateKey);
+
+            // Create SHA256 hash of the data
+            const messageHash = crypto.createHash('sha256').update(data).digest();
+
+            // Sign the hash
+            const signature = ellipticPrivateKey.sign(messageHash);
+
+            // Convert signature to DER format
+            return signature.toDER('hex');
+        } catch (error) {
+            throw new Error(`Signing failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        }
     }
 
     /**
-     * Verify digital signature
+     * Verify digital signature using elliptic curve
      */
     verifySignature(data: string, signature: string, publicKey: string): boolean {
         try {
-            const verify = crypto.createVerify('SHA256');
-            verify.update(data);
-            return verify.verify(publicKey, signature, 'hex');
+            const ellipticPublicKey = ec.keyFromPublic(publicKey, 'hex');
+
+            // Create SHA256 hash of the data
+            const messageHash = crypto.createHash('sha256').update(data).digest();
+
+            // Verify signature using elliptic
+            return ellipticPublicKey.verify(messageHash, signature);
         } catch (error) {
+            console.error('Signature verification error:', error);
             return false;
         }
     }
 
     /**
-     * Generate secp256k1 keypair
+     * Generate secp256k1 keypair using elliptic
      */
     generateKeyPair(): { publicKey: string; privateKey: string } {
-        const { publicKey, privateKey } = crypto.generateKeyPairSync('ec', {
-            namedCurve: 'secp256k1', // or 'prime256v1' for P-256
-            publicKeyEncoding: { type: 'spki', format: 'pem' },
-            privateKeyEncoding: { type: 'pkcs8', format: 'pem' }
-        });
+        // Generate keypair using elliptic
+        const keyPair = ec.genKeyPair();
 
-        return { publicKey, privateKey };
+        // Get private key as hex
+        const privateKeyHex = keyPair.getPrivate('hex');
+
+        // Get public key as hex (uncompressed)
+        const publicKeyHex = keyPair.getPublic('hex');
+
+        // Convert to PEM format for compatibility with crypto operations
+        const privateKeyPEM = this.hexToPEMPrivate(privateKeyHex);
+        const publicKeyPEM = this.hexToPEMPublic(publicKeyHex);
+
+        return { publicKey: publicKeyPEM, privateKey: privateKeyPEM };
+    }
+
+    /**
+     * Convert hex private key to PEM format
+     */
+    private hexToPEMPrivate(privateKeyHex: string): string {
+        // Basic PEM wrapper for secp256k1 private key
+        const header = '-----BEGIN EC PRIVATE KEY-----';
+        const footer = '-----END EC PRIVATE KEY-----';
+
+        // Simple DER encoding for secp256k1 private key
+        const version = '01';
+        const privateKeyOctet = '0420' + privateKeyHex;
+        const parameters = 'A00706052B8104000A'; // secp256k1 curve parameters
+
+        const derContent = '30' + // SEQUENCE
+            '74' + // length
+            '0201' + version + // INTEGER version
+            privateKeyOctet + // OCTET STRING private key
+            parameters; // curve parameters
+
+        // Convert to base64
+        const hexBytes = derContent.match(/.{2}/g) || [];
+        const bytes = hexBytes.map(hex => String.fromCharCode(parseInt(hex, 16))).join('');
+        const base64 = Buffer.from(bytes, 'binary').toString('base64');
+
+        // Format with line breaks
+        const formatted = base64.match(/.{1,64}/g)?.join('\n') || base64;
+
+        return `${header}\n${formatted}\n${footer}`;
+    }
+
+    /**
+     * Convert hex public key to PEM format
+     */
+    private hexToPEMPublic(publicKeyHex: string): string {
+        const header = '-----BEGIN PUBLIC KEY-----';
+        const footer = '-----END PUBLIC KEY-----';
+
+        // DER encoding for secp256k1 public key
+        const derPrefix = '3056301006072a8648ce3d020106052b8104000a034200';
+        const derEncoded = derPrefix + publicKeyHex;
+
+        // Convert to base64
+        const hexBytes = derEncoded.match(/.{2}/g) || [];
+        const bytes = hexBytes.map(hex => String.fromCharCode(parseInt(hex, 16))).join('');
+        const base64 = Buffer.from(bytes, 'binary').toString('base64');
+
+        // Format with line breaks
+        const formatted = base64.match(/.{1,64}/g)?.join('\n') || base64;
+
+        return `${header}\n${formatted}\n${footer}`;
+    }
+
+    /**
+     * Convert PEM private key to elliptic private key
+     */
+    private pemToEllipticPrivateKey(pemKey: string): any {
+        // Extract hex from PEM (simplified approach)
+        const lines = pemKey.split('\n').filter(line =>
+            !line.includes('BEGIN') && !line.includes('END') && line.trim()
+        );
+        const base64 = lines.join('');
+        const der = Buffer.from(base64, 'base64');
+
+        // For our simplified DER format, extract the private key hex
+        // This is a basic extraction - in production, use proper ASN.1 parsing
+        const derHex = der.toString('hex');
+        const privateKeyMatch = derHex.match(/0420([a-f0-9]{64})/i);
+
+        if (privateKeyMatch) {
+            return ec.keyFromPrivate(privateKeyMatch[1], 'hex');
+        }
+
+        throw new Error('Could not extract private key from PEM');
+    }
+
+    /**
+     * Convert PEM public key to elliptic public key
+     */
+    private pemToEllipticPublicKey(pemKey: string): any {
+        // Extract hex from PEM
+        const lines = pemKey.split('\n').filter(line =>
+            !line.includes('BEGIN') && !line.includes('END') && line.trim()
+        );
+        const base64 = lines.join('');
+        const der = Buffer.from(base64, 'base64');
+
+        // Extract public key hex from DER
+        const derHex = der.toString('hex');
+        const publicKeyMatch = derHex.match(/034200([a-f0-9]+)$/i);
+
+        if (publicKeyMatch) {
+            return ec.keyFromPublic(publicKeyMatch[1], 'hex');
+        }
+
+        throw new Error('Could not extract public key from PEM');
     }
 
     /**
@@ -385,24 +518,31 @@ class BlindflareService extends BaseService {
      */
     encryptWithECC(data: string, publicKey: string): EncryptedData {
         try {
-            // Generate ephemeral key pair
-            const ephemeralKeyPair = this.generateKeyPair();
+            // Generate ephemeral key pair using elliptic
+            const ephemeralKeyPairElliptic = ec.genKeyPair();
 
-            // Derive shared secret using ECDH
-            const ecdh = crypto.createECDH('secp256k1');
-            ecdh.setPrivateKey(crypto.createPrivateKey(ephemeralKeyPair.privateKey).export({
-                type: 'sec1',
-                format: 'der'
-            }));
+            // Convert recipient's public key to elliptic point
+            let recipientPublicKey;
+            if (publicKey.includes('-----BEGIN PUBLIC KEY-----')) {
+                // PEM format
+                recipientPublicKey = this.pemToEllipticPublicKey(publicKey);
+            } else {
+                // Hex format
+                recipientPublicKey = ec.keyFromPublic(publicKey, 'hex');
+            }
 
-            const publicKeyObject = crypto.createPublicKey(publicKey);
-            const sharedSecret = ecdh.computeSecret(publicKeyObject.export({
-                type: 'spki',
-                format: 'der'
-            }));
+            // Compute shared secret using ECDH
+            const sharedSecret = ephemeralKeyPairElliptic.derive(recipientPublicKey.getPublic());
+            const sharedSecretHex = sharedSecret.toString(16).padStart(64, '0');
 
             // Derive encryption key from shared secret
-            const encryptionKey = crypto.pbkdf2Sync(sharedSecret, 'blindflare-ecc', 10000, 32, 'sha256');
+            const encryptionKey = crypto.pbkdf2Sync(
+                Buffer.from(sharedSecretHex, 'hex'),
+                'blindflare-ecc',
+                10000,
+                32,
+                'sha256'
+            );
 
             // Encrypt data with derived key
             const iv = this.generateIV();
@@ -414,11 +554,14 @@ class BlindflareService extends BaseService {
 
             const tag = cipher.getAuthTag();
 
+            // Convert ephemeral public key to PEM format
+            const ephemeralPublicKeyPEM = this.hexToPEMPublic(ephemeralKeyPairElliptic.getPublic('hex'));
+
             return {
                 data: encrypted,
                 iv: iv.toString('hex'),
                 tag: tag.toString('hex'),
-                ephemeralPublicKey: ephemeralKeyPair.publicKey
+                ephemeralPublicKey: ephemeralPublicKeyPEM
             };
         } catch (error) {
             throw new Error(`ECC encryption failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -430,23 +573,24 @@ class BlindflareService extends BaseService {
      */
     decryptWithECC(encryptedData: EncryptedData & { ephemeralPublicKey: string }, privateKey: string = this.privateKey): string {
         try {
-            // Create ECDH instance with our private key
-            const ecdh = crypto.createECDH('secp256k1');
-            const privateKeyObject = crypto.createPrivateKey(privateKey);
-            ecdh.setPrivateKey(privateKeyObject.export({
-                type: 'sec1',
-                format: 'der'
-            }));
+            // Convert our PEM private key to elliptic key
+            const ourPrivateKey = this.pemToEllipticPrivateKey(privateKey);
 
-            // Compute shared secret using ephemeral public key
-            const ephemeralPublicKeyObject = crypto.createPublicKey(encryptedData.ephemeralPublicKey);
-            const sharedSecret = ecdh.computeSecret(ephemeralPublicKeyObject.export({
-                type: 'spki',
-                format: 'der'
-            }));
+            // Convert ephemeral PEM public key to elliptic point
+            const ephemeralPublicKey = this.pemToEllipticPublicKey(encryptedData.ephemeralPublicKey);
+
+            // Compute shared secret using ECDH
+            const sharedSecret = ourPrivateKey.derive(ephemeralPublicKey.getPublic());
+            const sharedSecretHex = sharedSecret.toString(16).padStart(64, '0');
 
             // Derive decryption key from shared secret
-            const decryptionKey = crypto.pbkdf2Sync(sharedSecret, 'blindflare-ecc', 10000, 32, 'sha256');
+            const decryptionKey = crypto.pbkdf2Sync(
+                Buffer.from(sharedSecretHex, 'hex'),
+                'blindflare-ecc',
+                10000,
+                32,
+                'sha256'
+            );
 
             // Decrypt data
             const decipher = crypto.createDecipheriv(
