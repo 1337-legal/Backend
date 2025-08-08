@@ -1,6 +1,6 @@
 import Router, { t } from 'elysia';
 
-import BlindflareMiddleware from '@Middlewares/BlindflareMiddleware';
+import BlindflareMiddleware from '@Middlewares/FortressMiddleware';
 import SessionMiddleware from '@Middlewares/SessionMiddleware';
 import AliasRepository from '@Repositories/AliasRepository';
 import ListenerService from '@Services/ListenerService';
