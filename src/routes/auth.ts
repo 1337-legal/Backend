@@ -70,6 +70,13 @@ authRouter.post(
     async ({ set, body, jwt }) => {
         const { address, publicKey, signature } = body;
 
+        if (!BlindflareService.verifySignature("AUTH", signature, publicKey)) {
+            set.status = 401;
+            return {
+                message: "Invalid signature.",
+            };
+        }
+
         const user = await UserRepository.findUserByPublicKey(publicKey);
         if (user) {
             set.status = 409;
@@ -78,24 +85,23 @@ authRouter.post(
             };
         }
 
-        if (!BlindflareService.verifySignature("AUTH", signature, publicKey)) {
-            set.status = 401;
-            return {
-                message: "Invalid signature.",
-            };
-        }
-
         const newUser = await UserRepository.createUser({
             publicKey,
             address
         });
+
+        if (!newUser) {
+            set.status = 500;
+            return {
+                message: "Failed to create user.",
+            };
+        }
 
         const session = BlindflareService.generateSessionKey({
             user: newUser.publicKey,
             expirationMinutes: 120
         });
 
-        // Encrypt the session key with the user's public key
         const encryptedSessionData = BlindflareService.encryptWithECC(session.key, publicKey);
 
         const token = await jwt.sign({
@@ -127,6 +133,12 @@ authRouter.post(
             }),
             signature: t.String({
                 description: "SHA-512 signature of the user's private key.",
+            }),
+            blindflare: t.Object({
+                type: t.Literal("AUTH"),
+                version: t.String({
+                    description: "Version of the Blindflare protocol.",
+                }),
             }),
         }),
     }
