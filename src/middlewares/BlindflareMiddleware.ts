@@ -1,8 +1,6 @@
 import type { Context } from "elysia";
 
-import BlindflareService, {
-    BlindflareResponseBody, EncryptedData
-} from '@Services/BlindflareService';
+import Fortress from '@blindflare/fortress';
 
 import BaseMiddleware from './BaseMiddleware';
 
