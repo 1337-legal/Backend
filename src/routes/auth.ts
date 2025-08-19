@@ -27,17 +27,8 @@ authRouter.post(
             };
         }
 
-        const session = Fortress.generateSessionKey({
-            user: user.publicKey,
-            expirationMinutes: 120
-        });
-
-        // Store server-recoverable session key in JWT (encrypted with server public key)
-        const encryptedSessionKey = Fortress.encryptWithECC(session.key, Fortress.publicKey);
-
         const token = await jwt.sign({
             publicKey: user.publicKey,
-            encryptedSessionKey: JSON.stringify(encryptedSessionKey),
             role: user.role,
         });
 
@@ -45,10 +36,6 @@ authRouter.post(
             user: {
                 address: user.address,
                 role: user.role,
-            },
-            blindflare: {
-                key: session.key,
-                expiresAt: session.expiresAt
             },
             token,
         };
@@ -104,17 +91,8 @@ authRouter.post(
             };
         }
 
-        const session = Fortress.generateSessionKey({
-            user: newUser.publicKey,
-            expirationMinutes: 120
-        });
-
-        // Store server-recoverable session key in JWT (encrypted with server public key)
-        const encryptedSessionData = Fortress.encryptWithECC(session.key, Fortress.publicKey);
-
         const token = await jwt.sign({
             publicKey: publicKey,
-            encryptedSessionKey: JSON.stringify(encryptedSessionData),
             role: newUser.role
         });
 
@@ -122,10 +100,6 @@ authRouter.post(
             user: {
                 address: newUser.address,
                 role: newUser.role,
-            },
-            blindflare: {
-                key: session.key,
-                expiresAt: session.expiresAt
             },
             token
         };
