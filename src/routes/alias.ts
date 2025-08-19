@@ -1,4 +1,5 @@
 import Router, { t } from 'elysia';
+import { generateRandomWords } from 'src/lib/utils';
 
 import BlindflareMiddleware from '@Middlewares/FortressMiddleware';
 import SessionMiddleware from '@Middlewares/SessionMiddleware';
@@ -9,11 +10,11 @@ const authRouter: typeof ListenerService.app = new Router();
 
 authRouter.put(
     "/alias",
-    async ({ body, user }) => {
-        const { domain } = body;
+    async ({ user }) => {
+        const address = generateRandomWords(3).replace(/\s+/g, '-').toLowerCase();
 
         const alias = await AliasRepository.createAlias({
-            address: domain,
+            address: address + '@1337.legal',
             user: {
                 connect: { publicKey: user?.publicKey }
             }
