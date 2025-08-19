@@ -1,5 +1,6 @@
 import Elysia, { ElysiaConfig } from 'elysia';
 import authRouter from 'src/routes/auth';
+import blindflareRouter from 'src/routes/blindflare';
 
 import cors from '@elysiajs/cors';
 import jwt from '@elysiajs/jwt';
@@ -20,6 +21,7 @@ class ListenerService extends BaseService {
         this.app = this.generateApp(config);
 
         this.setupRoutes([
+            blindflareRouter,
             authRouter
         ]);
     }

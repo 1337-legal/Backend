@@ -28,11 +28,8 @@ authRouter.put(
         afterHandle: [BlindflareMiddleware.handleResponse],
         detail: "Create an alias",
         body: t.Object({
-            domain: t.String({
-                description: "The domain to create an alias for.",
-            }),
             blindflare: t.Object({
-                type: t.Literal("TRANSACTION"),
+                type: t.Literal("TX"),
                 version: t.String({
                     description: "Version of the Blindflare protocol.",
                 }),
@@ -40,8 +37,6 @@ authRouter.put(
         }),
     }
 );
-
-// .patch (disable/enable alias) and .delete (remove alias) routes can be added similarly
 
 authRouter.patch(
     "/alias/:address",
@@ -64,7 +59,7 @@ authRouter.patch(
         detail: "Change alias status. This can be used to enable or disable an alias.",
         body: t.Object({
             blindflare: t.Object({
-                type: t.Literal("TRANSACTION", {
+                type: t.Literal("TX", {
                     description: "Type of the Blindflare protocol.",
                 }),
                 payload: t.Object({
