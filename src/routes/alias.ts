@@ -6,9 +6,9 @@ import SessionMiddleware from '@Middlewares/SessionMiddleware';
 import AliasRepository from '@Repositories/AliasRepository';
 import ListenerService from '@Services/ListenerService';
 
-const authRouter: typeof ListenerService.app = new Router();
+const aliasRouter: typeof ListenerService.app = new Router();
 
-authRouter.put(
+aliasRouter.put(
     "/alias",
     async ({ user }) => {
         const address = generateRandomWords(3).replace(/\s+/g, '-').toLowerCase();
@@ -39,7 +39,7 @@ authRouter.put(
     }
 );
 
-authRouter.patch(
+aliasRouter.patch(
     "/alias/:address",
     async ({ params }) => {
         const { address } = params;
@@ -85,4 +85,4 @@ authRouter.patch(
     }
 );
 
-export default authRouter;
+export default aliasRouter;
