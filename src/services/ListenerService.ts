@@ -1,4 +1,5 @@
 import Elysia, { ElysiaConfig } from 'elysia';
+import aliasRouter from 'src/routes/alias';
 import authRouter from 'src/routes/auth';
 import blindflareRouter from 'src/routes/blindflare';
 
@@ -22,11 +23,12 @@ class ListenerService extends BaseService {
 
         this.setupRoutes([
             blindflareRouter,
-            authRouter
+            authRouter,
+            aliasRouter
         ]);
     }
 
-    public generateApp(config?: ElysiaConfig<any>) {
+    private generateApp(config?: ElysiaConfig<any>) {
         return new Elysia(config).use(swagger())
             .use(
                 jwt({
@@ -44,9 +46,10 @@ class ListenerService extends BaseService {
                 })
             )
             .derive(async ({ headers, jwt }) => {
-                const token = headers["authorization"];
+                const token = headers["authorization"]?.split(" ")[1];
 
                 const payload = (await jwt.verify(token)) as UserType | false;
+
                 if (!payload) {
                     return { user: null };
                 }
