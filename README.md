@@ -1,150 +1,133 @@
-# @blindflare/fortress
+# 🛡️ 1337.legal Backend
 
-Advanced cryptographic service with AES-256-GCM, secp256k1 ECC (hex-only), digital signatures, and session/transaction utilities.
+Privacy‑first alias & session API built on the Blindflare Protocol (📜 whitepaper: https://www.blindflare.org/whitepaper.pdf).  
+Current focus: secure handshake, auth, session key wrapping, and alias generation
 
-- AES-256-GCM symmetric encryption with AAD
-- ECIES-like hybrid encryption on secp256k1 (hex keys only, no PEM)
-- Session key generation, rotation, tokens
-- ECDSA signatures (secp256k1, SHA-256)
-- Hashing (PBKDF2-SHA512), secure token generation, memory wipe
-- Transaction helpers: serialize, encrypt, and decrypt into typed objects
+---
 
-## Installation
+## ✨ Current Capabilities (MVP)
+
+| Domain | Status | Description |
+| ------ | ------ | ----------- |
+| 🔐 Blindflare Handshake | ✅ | `/api/v1/blindflare/hello` negotiates protocol context. |
+| 👤 Auth (Public Key + Signature) | ✅ | `/api/v1/auth` registers or logs in user via signed AUTH intent. |
+| 🔑 Session Wrapping | ✅ | Encrypted session key (ECC) + per-request TX encryption (FortressMiddleware). |
+| 🧬 Alias Generation | ✅ | Human-ish aliases from random word triplets + domain (`PUT /api/v1/alias`). |
+| 🔒 Transaction Encryption | ✅ | Requests & responses wrapped in Blindflare transaction envelope. |
+| 📜 OpenAPI Docs | ✅ | Swagger auto-exposed (Elysia plugin). |
+
+---
+
+## 🧪 API Summary (Implemented)
+
+Base prefix: `/api/v1`
+
+| Method | Path | Purpose |
+| ------ | ---- | ------- |
+| POST | `/blindflare/hello` | ClientHello → ServerHello (capabilities + nonce + sig validation). |
+| POST | `/auth` | Register/login via `{ blindflare: { type: 'AUTH', publicKey, signature } }`. |
+| PUT | `/alias` | Create new alias (random word-word-word@1337.legal). |
+| PATCH | `/alias/:address` | Retrieve alias & user context (placeholder for future status toggling). |
+
+All non-handshake routes expect encrypted Blindflare transaction payload & require valid JWT + session key.
+
+---
+
+## 🧩 Architecture
+
+| Component | Role |
+| --------- | ---- |
+| Elysia | Lightweight HTTP framework (fast Bun runtime support). |
+| Fortress (`@blindflare/fortress`) | Blindflare Protocol primitives: ECC hybrid, TX encryption, signatures. |
+| FortressMiddleware | Decrypt inbound TX → attach body → encrypt outbound TX. |
+| SessionMiddleware | JWT verification & user binding. |
+| AliasRepository | Persistence abstraction (currently basic ORM/repo style). |
+| ListenerService | App bootstrap: plugins (CORS, Swagger, JWT), routing groups, env loading. |
+
+---
+
+## 🔐 Blindflare Flow (Simplified)
+
+1. Client generates keypair ➜ sends HELLO with capabilities + nonce + signature.  
+2. Server creates ServerHello (challenge/ack).  
+3. Client performs AUTH (signed "AUTH" intent) ➜ receives JWT + encrypted session key.  
+4. Subsequent requests: encrypted transaction envelope (`type: 'TX'`) using session key.  
+5. Responses returned symmetrically encrypted & integrity‑protected.
+
+---
+
+## 🧪 Alias Generation
+
+- Uses three random BIP39 words → `word-word-word@1337.legal`
+- Not guaranteed unique across time (collision extremely low; DB constraint should enforce if added)
+- Example: `echo-rain-gesture@1337.legal`
+
+---
+
+## 🛠️ Environment
+
+```env
+JWT_SECRET=replace_me
+```
+
+(Additional vars like SMTP, DB, inbound relay secrets intentionally unused until forwarding & mail intake land.)
+
+---
+
+## 🚀 Development
 
 ```bash
-npm install @blindflare/fortress
+bun install
+bun run dev
+# or
+bun run --hot src/index.ts
 ```
 
-Node.js >= 16, Bun recommended.
+Swagger / OpenAPI UI: auto-mounted (check console output for URL).
 
-## Quick start
+---
 
-```ts
-import blindflare, { Fortress } from '@blindflare/fortress';
+## 🧱 Security Notes
 
-// Singleton usage
-const key = blindflare.generateKey();
-const encrypted = blindflare.encrypt('Hello, World!', key);
-const decrypted = blindflare.decrypt(encrypted, key);
+- Every TX encrypted (AES-256-GCM under Blindflare session key; session key wrapped via ECC).
+- Signatures: secp256k1 + SHA-256 (via fortress).
+- Session key stored encrypted per user (never plaintext at rest in app layer).
+- No plaintext alias mapping exposures beyond runtime objects.
+- Forwarding pipeline intentionally absent (prevents accidental data leakage during early iterations).
 
-// Custom instance
-const svc = new Fortress();
-const session = svc.generateSessionKey({ user: 'alice', expirationMinutes: 60 });
-```
+---
 
-## AES-GCM (symmetric)
+## 🗺️ Roadmap
 
-```ts
-const key = blindflare.generateKey(); // hex
-const payload = { msg: 'secret' };
+| Priority | Item |
+| -------- | ---- |
+| 🔜 | Inbound relay ingestion (queue + normalization). |
+| 🔜 | Forwarding pipeline (PGP / policy aware) — currently NOT implemented. |
+| 🔜 | Alias status toggling (suspend / revoke / rotate secret). |
+| 🔜 | Rate limiting & abuse heuristics. |
+| 🧪 | Encrypted audit log (minimal metadata). |
+| 🧪 | Blind index storage for deterministic lookup without plaintext disclosure. |
+| 🧬 | PGP key registry & auto‑wrapping. |
+| 🪪 | Webhook signing + delivery retries. |
+| 🧵 | Streaming encryption for large payloads / attachments. |
 
-const enc = blindflare.encrypt(JSON.stringify(payload), key);
-const dec = JSON.parse(blindflare.decrypt(enc, key));
-```
+---
 
-## ECC hybrid (hex-only)
+## ⚠️ Disclaimer
 
-- Keys are hex strings (uncompressed SEC1 for public keys: 04 + X + Y)
-- No PEM involved
+This backend is pre-forwarding. Do not deploy for production email traffic yet. Crypto surfaces may change pending further protocol validation.
 
-```ts
-const { publicKey, privateKey } = blindflare.generateKeyPair(); // hex
+---
 
-const encECC = blindflare.encryptWithECC('top secret', publicKey);
-// encECC includes { data, iv, tag, ephemeralPublicKey }
+## 🤝 Contributing
 
-const decECC = blindflare.decryptWithECC(encECC, privateKey);
-```
+Issues / PRs welcome once forwarding phase begins. Until then: expect refactors.
 
-## Digital signatures
+---
 
-```ts
-const { publicKey, privateKey } = blindflare.generateKeyPair();
-const signature = blindflare.signData('message', privateKey);
-const ok = blindflare.verifySignature('message', signature, publicKey);
-```
-
-## Sessions and tokens
-
-```ts
-const sessionKey = blindflare.generateSessionKey({ user: 'alice', expirationMinutes: 120 });
-
-const token = blindflare.createSessionToken(sessionKey, { role: 'admin' });
-const claims = blindflare.verifySessionToken(token, sessionKey);
-```
-
-## Transactions (serialize, encrypt, decrypt)
-
-```ts
-import type { BlindflareMeta } from '@blindflare/fortress';
-
-const meta: BlindflareMeta = { type: 'TRANSACTION', version: '1.0.0' };
-const payload = { amount: 100, currency: 'USD' };
-
-// Symmetric
-const tx = blindflare.encryptTransaction(payload, key, meta);
-const obj = blindflare.decryptTransaction<typeof payload>(tx, key);
-
-// ECC (hex keys)
-const { publicKey, privateKey } = blindflare.generateKeyPair();
-const txECC = blindflare.encryptTransactionWithECC(payload, publicKey, meta);
-const objECC = blindflare.decryptECCTransaction<typeof payload>(txECC, privateKey);
-```
-
-Note: serializeTransaction(payload, meta) creates a body with plaintext payload and metadata for debugging or custom pipelines; do not send plaintext in production.
-
-## File encryption (symmetric)
-
-```ts
-const fileBuffer = Buffer.from('file contents');
-const key = blindflare.generateKey();
-
-const encFile = blindflare.encrypt(fileBuffer.toString('base64'), key);
-const decFile = Buffer.from(blindflare.decrypt(encFile, key), 'base64');
-```
-
-## Types
-
-```ts
-interface EncryptedData {
-  data: string; // hex ciphertext
-  iv: string;   // hex IV
-  tag?: string; // hex GCM tag
-}
-
-interface EncryptedECCData extends EncryptedData {
-  ephemeralPublicKey: string; // hex (04 + X + Y)
-}
-
-interface SessionKey {
-  id: string;
-  key: string; // hex
-  user?: string;
-  sessionId: string;
-  createdAt: Date;
-  expiresAt: Date;
-  isActive: boolean;
-  lastUsed?: Date;
-}
-```
-
-## Testing
-
-```bash
-bun test
-```
-
-## Security notes
-
-- AES-GCM with 12-byte IV and AAD to bind context
-- ECDSA on secp256k1 with SHA-256 message hashing
-- PBKDF2-SHA512 for hashing and key derivation helpers
-- Constant-time comparisons where applicable
-
-## License
+## 📄 License
 
 MIT
 
-## Author
-
-Sierra
+---
+Made with ⛓️, 🔐, and a
