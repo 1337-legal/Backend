@@ -1,0 +1,7 @@
+node_modules
+.git
+Dockerfile
+bun.lockb
+.prisma
+coverage
+*.log

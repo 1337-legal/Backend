@@ -8,119 +8,48 @@ import ListenerService from '@Services/ListenerService';
 const authRouter: typeof ListenerService.app = new Router();
 
 authRouter.post(
-    "/auth/login",
+    '/auth',
     async ({ set, body, jwt }) => {
-        const { blindflare: { publicKey, signature } } = body;
+        const { address, blindflare: { publicKey, signature } } = body as any;
 
-        const user = await UserRepository.findUserByPublicKey(publicKey);
+        if (!Fortress.verifySignature('AUTH', signature, publicKey)) {
+            set.status = 401;
+            return { message: 'Invalid signature.' };
+        }
+
+        let user = await UserRepository.findUserByPublicKey(publicKey);
+
         if (!user) {
-            set.status = 401;
-            return {
-                message: "Public key not found.",
-            };
+            if (!address) {
+                set.status = 400;
+                return { message: 'Address required for registration.' };
+            }
+
+            user = await UserRepository.createUser({ publicKey, address });
+            if (!user) {
+                set.status = 500;
+                return { message: 'Failed to create user.' };
+            }
         }
 
-        if (!Fortress.verifySignature("AUTH", signature, publicKey)) {
-            set.status = 401;
-            return {
-                message: "Invalid signature.",
-            };
-        }
-
-        const token = await jwt.sign({
-            publicKey: user.publicKey,
-            role: user.role,
-        });
+        const token = await jwt.sign({ publicKey: user.publicKey, role: user.role });
 
         return {
-            user: {
-                address: user.address,
-                role: user.role,
-            },
+            user: { address: user.address, role: user.role },
             token,
         };
     },
     {
         afterHandle: [FortressMiddleware.handleResponse],
         body: t.Object({
+            address: t.Optional(t.String({
+                description: 'Forwarding address required only when registering a new user.',
+            })),
             blindflare: t.Object({
-                type: t.Literal("AUTH"),
-                publicKey: t.String({
-                    description: "Public key for the user.",
-                }),
-                signature: t.String({
-                    description: "SHA-512 signature of the user's private key.",
-                }),
-                version: t.String({
-                    description: "Version of the Blindflare protocol.",
-                }),
-            }),
-        }),
-    }
-);
-
-authRouter.post(
-    "/auth/register",
-    async ({ set, body, jwt }) => {
-        const { address, blindflare: { publicKey, signature } } = body;
-
-        if (!Fortress.verifySignature("AUTH", signature, publicKey)) {
-            set.status = 401;
-            return {
-                message: "Invalid signature.",
-            };
-        }
-
-        const user = await UserRepository.findUserByPublicKey(publicKey);
-        if (user) {
-            set.status = 409;
-            return {
-                message: "User already exists.",
-            };
-        }
-
-        const newUser = await UserRepository.createUser({
-            publicKey,
-            address
-        });
-
-        if (!newUser) {
-            set.status = 500;
-            return {
-                message: "Failed to create user.",
-            };
-        }
-
-        const token = await jwt.sign({
-            publicKey: publicKey,
-            role: newUser.role
-        });
-
-        return {
-            user: {
-                address: newUser.address,
-                role: newUser.role,
-            },
-            token
-        };
-    },
-    {
-        afterHandle: [FortressMiddleware.handleResponse],
-        body: t.Object({
-            address: t.String({
-                description: "The address where the emails are going to be forwarded to.",
-            }),
-            blindflare: t.Object({
-                type: t.Literal("AUTH"),
-                publicKey: t.String({
-                    description: "Public key for the user.",
-                }),
-                signature: t.String({
-                    description: "SHA-512 signature of the user's private key.",
-                }),
-                version: t.String({
-                    description: "Version of the Blindflare protocol.",
-                }),
+                type: t.Literal('AUTH'),
+                publicKey: t.String({ description: 'Public key for the user.' }),
+                signature: t.String({ description: "SHA-512 signature of the user's private key." }),
+                version: t.String({ description: 'Version of the Blindflare protocol.' }),
             }),
         }),
     }
