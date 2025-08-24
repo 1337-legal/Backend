@@ -15,6 +15,13 @@ class AliasRepository extends BaseRepository {
             include: { user: true },
         });
     }
+
+    async getAllByUser(publicKey: string) {
+        return this.prisma.alias.findMany({
+            where: { user: { publicKey } },
+            include: { user: true },
+        });
+    }
 }
 
 export default new AliasRepository();

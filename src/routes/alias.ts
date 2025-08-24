@@ -1,7 +1,7 @@
 import Router, { t } from 'elysia';
 import { generateRandomWords } from 'src/lib/utils';
 
-import BlindflareMiddleware from '@Middlewares/FortressMiddleware';
+import FortressMiddleware from '@Middlewares/FortressMiddleware';
 import SessionMiddleware from '@Middlewares/SessionMiddleware';
 import AliasRepository from '@Repositories/AliasRepository';
 import ListenerService from '@Services/ListenerService';
@@ -11,7 +11,7 @@ const aliasRouter: typeof ListenerService.app = new Router();
 aliasRouter.put(
     "/alias",
     async ({ user }) => {
-        const address = generateRandomWords(3).replace(/\s+/g, '-').toLowerCase();
+        /* const address = generateRandomWords(3).replace(/\s+/g, '-').toLowerCase();
 
         const alias = await AliasRepository.createAlias({
             address: address + '@1337.legal',
@@ -22,11 +22,12 @@ aliasRouter.put(
 
         return {
             address: alias.address,
-        };
+        }; */
+        return { caca: "caca" }
     },
     {
-        beforeHandle: [SessionMiddleware.auth, BlindflareMiddleware.handleRequest],
-        afterHandle: [BlindflareMiddleware.handleResponse],
+        beforeHandle: [SessionMiddleware.auth, FortressMiddleware.handleRequest],
+        afterHandle: FortressMiddleware.handleResponse,
         detail: "Create an alias",
         body: t.Object({
             blindflare: t.Object({
@@ -55,8 +56,8 @@ aliasRouter.patch(
         };
     },
     {
-        beforeHandle: [SessionMiddleware.auth, BlindflareMiddleware.handleRequest],
-        afterHandle: [BlindflareMiddleware.handleResponse],
+        beforeHandle: [SessionMiddleware.auth, FortressMiddleware.handleRequest],
+        afterHandle: [FortressMiddleware.handleResponse],
         detail: "Change alias status. This can be used to enable or disable an alias.",
         body: t.Object({
             blindflare: t.Object({
@@ -82,6 +83,27 @@ aliasRouter.patch(
                 }),
             }),
         }),
+    }
+);
+
+aliasRouter.post(
+    "/alias",
+    async ({ user }) => {
+        if (!user) throw new Error("Unauthorized");
+
+        const aliases = await AliasRepository.getAllByUser(user.publicKey);
+
+        return {
+            aliases: aliases.map(a => ({
+                address: a.address,
+                createdAt: a.createdAt,
+            })),
+        };
+    },
+    {
+        beforeHandle: [SessionMiddleware.auth, FortressMiddleware.handleRequest],
+        afterHandle: [FortressMiddleware.handleResponse],
+        detail: "Get all aliases for the user.",
     }
 );
 

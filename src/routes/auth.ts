@@ -36,7 +36,7 @@ authRouter.post(
 
         return {
             user: { address: user.address, role: user.role },
-            token,
+            token
         };
     },
     {

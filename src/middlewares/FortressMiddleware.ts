@@ -1,74 +1,45 @@
 import type { Context } from "elysia";
-
 import Fortress from '@blindflare/fortress';
 
 import BaseMiddleware from './BaseMiddleware';
-
-interface UserType {
-    publicKey: string;
-    encryptedSessionKey: string; // stringified encrypted ECC data
-    role: string;
-}
 
 class FortressMiddleware extends BaseMiddleware {
     constructor() {
         super();
 
-        this.handleAuthResponse = this.handleAuthResponse.bind(this);
         this.handleResponse = this.handleResponse.bind(this);
         this.handleRequest = this.handleRequest.bind(this);
     }
 
-    public async handleAuthResponse(context: Context & { response: unknown; user: UserType | null }) {
-        const { publicKey } = context.body as { publicKey: string };
-        try {
-            const meta = { type: 'AUTH', version: '1.0.0' };
-            return Fortress.encryptTransactionWithECC(context.response, publicKey, meta);
-        } catch (error) {
-            return this.error(401, "Invalid session data.");
-        }
-    }
+    public async handleResponse(context: Context & { response: unknown }) {
+        const encryptedSessionKey = context.headers['bf-session-key'] ?? context.headers['BF-Session-Key'];
+        if (typeof encryptedSessionKey !== 'string') return context.response;
 
-    async handleResponse(context: Context & { response: unknown; user: UserType | null }) {
-        const body = context.body as { blindflare?: { type?: string } };
-        if (body.blindflare && body.blindflare.type === "AUTH") {
-            return await this.handleAuthResponse(context);
-        }
-
-        if (!context.user) {
-            return this.error(401, "You need to be logged in to access this feature.");
-        }
+        const sessionKey: string = await Fortress.unwrapSessionKey(encryptedSessionKey)
 
         try {
-            const encryptedSessionData = JSON.parse(context.user.encryptedSessionKey);
-            const sessionKey = Fortress.decryptWithECC(encryptedSessionData); // uses fortress private key
-
-            const meta = { type: 'TRANSACTION', version: '1.0.0' };
+            const meta = { type: 'TX', version: '1.0.0' };
             return Fortress.encryptTransaction(context.response, sessionKey, meta);
-        } catch (error) {
-            return this.error(401, "Invalid session data.");
+        } catch {
+            return this.error(500, 'Blindflare: Response encryption failed.');
         }
     }
 
-    async handleRequest(context: Context & { user: UserType | null; body?: any }) {
-        if (!context.user) {
-            return this.error(401, "You need to be logged in to access this feature.");
-        }
+    async handleRequest(context: Context & { body?: any }) {
+        const encryptedSessionKey = context.headers?.['bf-session-key'] ?? (context as any).headers?.['BF-Session-Key'];
+        const body = context.body as { blindflare?: { type?: string } };
+        if (!body?.blindflare) return this.error(400, 'Blindflare: Missing metadata.');
 
-        if (!context.body || !context.body.blindflare) {
-            return this.error(400, "Blindflare: Invalid request body.");
-        }
+        if (typeof encryptedSessionKey !== 'string') return this.error(401, 'Blindflare: Missing session key header.');
+        let sessionKey: string;
+        try {
+            sessionKey = await Fortress.unwrapSessionKey(encryptedSessionKey);
+        } catch { return this.error(401, 'Blindflare: Invalid session key header.'); }
 
         try {
-            const encryptedSessionData = JSON.parse(context.user.encryptedSessionKey);
-            const sessionKey = Fortress.decryptWithECC(encryptedSessionData);
-
-            // Decrypt incoming transaction into a plain object
-            const obj = Fortress.decryptTransaction<any>(context.body, sessionKey);
-            context.body = obj;
-        } catch (error) {
-            return this.error(500, "Blindflare: Decryption failed.");
-        }
+            const plain = await Fortress.decryptTransaction(context.body, sessionKey);
+            context.body = plain.payload ?? plain;
+        } catch { return this.error(400, 'Blindflare: Request decryption failed.'); }
     }
 }
 
