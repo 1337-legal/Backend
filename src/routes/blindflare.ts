@@ -26,7 +26,8 @@ blindflareRouter.post(
         }
 
         try {
-            const serverHello = Fortress.createServerHello(clientHello);
+            const serverHello = await Fortress.createServerHello(clientHello);
+
             return { blindflare: serverHello };
         } catch (e) {
 

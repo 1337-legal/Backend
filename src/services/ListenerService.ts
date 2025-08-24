@@ -54,7 +54,7 @@ class ListenerService extends BaseService {
                     return { user: null };
                 }
 
-                return { user: payload };
+                return { user: payload as UserType };
             });
     }
 
