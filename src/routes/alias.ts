@@ -11,7 +11,7 @@ const aliasRouter: typeof ListenerService.app = new Router();
 aliasRouter.put(
     "/alias",
     async ({ user }) => {
-        /* const address = generateRandomWords(3).replace(/\s+/g, '-').toLowerCase();
+        const address = generateRandomWords(3).replace(/\s+/g, '-').toLowerCase();
 
         const alias = await AliasRepository.createAlias({
             address: address + '@1337.legal',
@@ -22,8 +22,7 @@ aliasRouter.put(
 
         return {
             address: alias.address,
-        }; */
-        return { caca: "caca" }
+        };
     },
     {
         beforeHandle: [SessionMiddleware.auth, FortressMiddleware.handleRequest],
@@ -86,19 +85,12 @@ aliasRouter.patch(
     }
 );
 
-aliasRouter.post(
+aliasRouter.get(
     "/alias",
     async ({ user }) => {
         if (!user) throw new Error("Unauthorized");
 
-        const aliases = await AliasRepository.getAllByUser(user.publicKey);
-
-        return {
-            aliases: aliases.map(a => ({
-                address: a.address,
-                createdAt: a.createdAt,
-            })),
-        };
+        return await AliasRepository.getAllByUser(user.publicKey);
     },
     {
         beforeHandle: [SessionMiddleware.auth, FortressMiddleware.handleRequest],
