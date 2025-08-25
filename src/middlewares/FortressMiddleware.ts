@@ -7,7 +7,6 @@ class FortressMiddleware extends BaseMiddleware {
     constructor() {
         super();
 
-        this.handleResponse = this.handleResponse.bind(this);
         this.handleRequest = this.handleRequest.bind(this);
     }
 

@@ -10,7 +10,7 @@ const authRouter: typeof ListenerService.app = new Router();
 authRouter.post(
     '/auth',
     async ({ set, body, jwt }) => {
-        const { address, blindflare: { publicKey, signature } } = body as any;
+        const { address, blindflare: { publicKey, signature } } = body;
 
         if (!Fortress.verifySignature('AUTH', signature, publicKey)) {
             set.status = 401;

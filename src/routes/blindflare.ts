@@ -30,7 +30,6 @@ blindflareRouter.post(
 
             return { blindflare: serverHello };
         } catch (e) {
-
             console.log(e)
             set.status = 401;
             return { message: 'Handshake failed' };

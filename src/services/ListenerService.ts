@@ -2,6 +2,7 @@ import Elysia, { ElysiaConfig } from 'elysia';
 import aliasRouter from 'src/routes/alias';
 import authRouter from 'src/routes/auth';
 import blindflareRouter from 'src/routes/blindflare';
+import userRouter from 'src/routes/user';
 
 import cors from '@elysiajs/cors';
 import jwt from '@elysiajs/jwt';
@@ -24,6 +25,7 @@ class ListenerService extends BaseService {
         this.setupRoutes([
             blindflareRouter,
             authRouter,
+            userRouter,
             aliasRouter
         ]);
     }
@@ -41,7 +43,7 @@ class ListenerService extends BaseService {
                     origin: "*",
                     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
                     maxAge: 3600,
-                    allowedHeaders: ["Content-Type", "Authorization"],
+                    allowedHeaders: ["Content-Type", "Authorization", "BF-Session-Key"],
                     credentials: true,
                 })
             )
