@@ -4,13 +4,14 @@ import Fortress from '@blindflare/fortress';
 import FortressMiddleware from '@Middlewares/FortressMiddleware';
 import UserRepository from '@Repositories/UserRepository';
 import ListenerService from '@Services/ListenerService';
+import VerificationService from '@Services/VerificationService';
 
 const authRouter: typeof ListenerService.app = new Router();
 
 authRouter.post(
     '/auth',
     async ({ set, body, jwt }) => {
-        const { address, blindflare: { publicKey, signature } } = body;
+        const { address, blindflare: { publicKey, signature } } = body as any;
 
         if (!Fortress.verifySignature('AUTH', signature, publicKey)) {
             set.status = 401;
@@ -52,6 +53,48 @@ authRouter.post(
                 version: t.String({ description: 'Version of the Blindflare protocol.' }),
             }),
         }),
+    }
+);
+
+authRouter.post(
+    '/auth/send-code',
+    async ({ set, body }) => {
+        const email = (body as any).email?.trim().toLowerCase();
+        const pgp = ((body as any).pgp || '').trim();
+
+        try {
+            await VerificationService.sendCode(email, pgp);
+            return { ok: true };
+        } catch (e: any) {
+            const status = typeof e?.status === 'number' ? e.status : 500;
+            set.status = status;
+            return { message: e?.message || 'Failed to send verification. Try again later.' };
+        }
+    },
+    {
+        beforeHandle: [FortressMiddleware.handleRequest],
+        afterHandle: [FortressMiddleware.handleResponse],
+    }
+);
+
+authRouter.post(
+    '/auth/verify-code',
+    async ({ set, body }) => {
+        const email = (body as any).email?.trim().toLowerCase();
+        const code = (((body as any).code || '') as string).trim();
+
+        try {
+            await VerificationService.verifyCode(email, code);
+            return { ok: true };
+        } catch (e: any) {
+            const status = typeof e?.status === 'number' ? e.status : 400;
+            set.status = status;
+            return { message: e?.message || 'Verification failed' };
+        }
+    },
+    {
+        beforeHandle: [FortressMiddleware.handleRequest],
+        afterHandle: [FortressMiddleware.handleResponse]
     }
 );
 
