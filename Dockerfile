@@ -5,7 +5,7 @@ WORKDIR /app
 COPY package.json ./
 COPY bun.lock ./
 COPY .env ./
-COPY prisma/ ./
+COPY prisma/ ./prisma/
 COPY tsconfig.json ./
 COPY src/ ./src/
 
@@ -15,6 +15,8 @@ RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - && \
 
 RUN bun install
 
+RUN bunx prisma generate
+
 EXPOSE 3000
 
-CMD ["bash", "-c", "bunx prisma generate && bun run start"]
+CMD ["bun", "run", "start"]

@@ -16,7 +16,7 @@ class ListenerService extends BaseService {
 
     constructor(config?: ElysiaConfig<any>) {
         super();
-        this.env = this.getEnvironmentVariables([
+        this.env = this.checkEnvironment([
             "JWT_SECRET"
         ]);
 

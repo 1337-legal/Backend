@@ -1,5 +1,5 @@
 class BaseService {
-    getEnvironmentVariables(name: string[]): { [key: string]: string } {
+    public checkEnvironment(name: string[]): { [key: string]: string } {
         const values: { [key: string]: string } = {}
 
         for (const envName of name) {
