@@ -33,12 +33,16 @@ class FortressMiddleware extends BaseMiddleware {
         let sessionKey: string;
         try {
             sessionKey = await Fortress.unwrapSessionKey(encryptedSessionKey);
-        } catch { return this.error(401, 'Blindflare: Invalid session key header.'); }
+        } catch {
+            return this.error(401, 'Blindflare: Invalid session key header.');
+        }
 
         try {
             const plain = await Fortress.decryptTransaction(context.body, sessionKey);
             context.body = plain.payload ?? plain;
-        } catch { return this.error(400, 'Blindflare: Request decryption failed.'); }
+        } catch {
+            return this.error(400, 'Blindflare: Request decryption failed.');
+        }
     }
 }
 
