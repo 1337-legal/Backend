@@ -3,7 +3,7 @@ import { error } from 'elysia';
 class BaseMiddleware {
     error(code: number, message: string) {
         return error(code, {
-            message,
+            message: `${code}: ${message}`,
         });
     }
 }
