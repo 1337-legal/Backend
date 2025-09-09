@@ -50,11 +50,7 @@ class ListenerService extends BaseService {
             .derive(async ({ headers, jwt }) => {
                 const token = headers["authorization"]?.split(" ")[1];
 
-                const payload = (await jwt.verify(token)) as UserType | false;
-
-                if (!payload) {
-                    return { user: null };
-                }
+                const payload = (await jwt.verify(token)) as UserType;
 
                 return { user: payload as UserType };
             });
