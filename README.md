@@ -80,7 +80,7 @@ JWT_SECRET=replace_me
 bun install
 bun run dev
 # or
-bun run --hot src/index.ts
+bun run --hot src/globals.d.ts
 ```
 
 Swagger / OpenAPI UI: auto-mounted (check console output for URL).

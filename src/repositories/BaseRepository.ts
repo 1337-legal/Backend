@@ -1,6 +1,5 @@
-import type { PrismaClient } from "@prisma/client";
-import PrismaDriver from '../drivers/Prisma';
+import Database from '@Drivers/Database';
 
 export default class BaseRepository {
-    protected prisma: PrismaClient = PrismaDriver;
+    protected database = Database;
 }

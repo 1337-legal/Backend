@@ -1,26 +1,58 @@
-import { Prisma } from '@prisma/client';
-
 import BaseRepository from './BaseRepository';
+import { Alias } from '../types/database';
+import { Insertable } from 'kysely';
 
 class AliasRepository extends BaseRepository {
-    async createAlias(data: Prisma.AliasCreateInput) {
-        return this.prisma.alias.create({
-            data,
-        });
+    async createAlias(data: Insertable<Alias>) {
+        return this.database
+            .insertInto('Alias')
+            .values(data)
+            .returningAll()
+            .executeTakeFirst();
     }
 
     async getAliasByAddress(address: string) {
-        return this.prisma.alias.findUnique({
-            where: { address },
-            include: { user: true },
-        });
+        return this.database
+            .selectFrom('Alias')
+            .where('Alias.address', '=', address)
+            .innerJoin('User', 'Alias.userId', 'User.id')
+            .select([
+                'Alias.id as aliasId',
+                'Alias.address as aliasAddress',
+                'Alias.userId',
+                'Alias.createdAt as aliasCreatedAt',
+                'Alias.updatedAt as aliasUpdatedAt',
+                'User.id as userId',
+                'User.address as userAddress',
+                'User.publicKey',
+                'User.pgpPublicKey',
+                'User.role',
+                'User.createdAt as userCreatedAt',
+                'User.updatedAt as userUpdatedAt',
+            ])
+            .executeTakeFirst();
     }
 
     async getAllByUser(publicKey: string) {
-        return this.prisma.alias.findMany({
-            where: { user: { publicKey } },
-            include: { user: true },
-        });
+        return this.database
+            .selectFrom('Alias')
+            .innerJoin('User', 'Alias.userId', 'User.id')
+            .where('User.publicKey', '=', publicKey)
+            .select([
+                'Alias.id as aliasId',
+                'Alias.address as aliasAddress',
+                'Alias.userId',
+                'Alias.createdAt as aliasCreatedAt',
+                'Alias.updatedAt as aliasUpdatedAt',
+                'User.id as userId',
+                'User.address as userAddress',
+                'User.publicKey',
+                'User.pgpPublicKey',
+                'User.role',
+                'User.createdAt as userCreatedAt',
+                'User.updatedAt as userUpdatedAt',
+            ])
+            .execute();
     }
 }
 
