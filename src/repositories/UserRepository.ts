@@ -1,28 +1,46 @@
-import { Prisma } from '@prisma/client';
-
 import BaseRepository from './BaseRepository';
+import { Insertable, Updateable } from 'kysely';
+import { User } from '../types/database';
 
 class UserRepository extends BaseRepository {
     async findUserById(id: number) {
-        return this.prisma.user.findUnique({ where: { id } });
+        return this.database
+            .selectFrom('User')
+            .where('id', '=', id)
+            .selectAll()
+            .executeTakeFirst();
     }
 
     async findUserByPublicKey(publicKey: string) {
-        return this.prisma.user.findFirst({
-            where: { publicKey }
-        });
+        return this.database
+            .selectFrom('User')
+            .where('publicKey', '=', publicKey)
+            .selectAll()
+            .executeTakeFirst();
     }
 
-    async createUser(data: Prisma.UserCreateInput) {
-        return this.prisma.user.create({ data });
+    async createUser(data: Insertable<User>) {
+        return this.database
+            .insertInto('User')
+            .values(data)
+            .returningAll()
+            .executeTakeFirst();
     }
 
-    async updateUser(id: number, data: Prisma.UserUpdateInput) {
-        return this.prisma.user.update({ where: { id }, data });
+    async updateUser(id: number, data: Updateable<User>) {
+        return this.database
+            .updateTable('User')
+            .set(data)
+            .where('id', '=', id)
+            .returningAll()
+            .executeTakeFirst();
     }
 
     async deleteUser(id: number) {
-        return this.prisma.user.delete({ where: { id } });
+        return this.database
+            .deleteFrom('User')
+            .where('id', '=', id)
+            .returningAll();
     }
 }
 
