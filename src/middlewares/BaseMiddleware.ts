@@ -1,10 +1,6 @@
-import { error } from 'elysia';
-
 class BaseMiddleware {
     error(code: number, message: string) {
-        return error(code, {
-            message: `${code}: ${message}`,
-        });
+        return new HttpException(code, message);
     }
 }
 

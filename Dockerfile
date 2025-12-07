@@ -1,21 +1,13 @@
-FROM oven/bun:debian
+FROM oven/bun:alpine
 
 WORKDIR /app
 
 COPY package.json ./
 COPY bun.lock ./
-COPY .env ./
-COPY prisma/ ./prisma/
 COPY tsconfig.json ./
 COPY src/ ./src/
 
-RUN apt update && apt install -y curl
-RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - && \
-    apt-get install -y nodejs
-
 RUN bun install
-
-RUN bunx prisma generate
 
 EXPOSE 3000
 

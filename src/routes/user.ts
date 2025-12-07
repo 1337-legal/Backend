@@ -79,7 +79,6 @@ userRouter.patch(
     },
 );
 
-// Existing alias route
 userRouter.get(
     '/alias',
     async ({ user }) => {
@@ -87,20 +86,10 @@ userRouter.get(
 
         const aliases = await AliasRepository.getAllByUser(user.publicKey);
 
-        // Transform flattened Kysely results to nested structure
         return aliases.map((alias) => ({
-            address: alias.aliasAddress,
-            user: {
-                id: alias.userId,
-                address: alias.userAddress,
-                publicKey: alias.publicKey,
-                pgpPublicKey: alias.pgpPublicKey,
-                role: alias.role,
-                createdAt: alias.userCreatedAt,
-                updatedAt: alias.userUpdatedAt,
-            },
-            createdAt: alias.aliasCreatedAt,
-            updatedAt: alias.aliasUpdatedAt,
+            address: alias.Alias?.address,
+            createdAt: alias.Alias?.createdAt,
+            updatedAt: alias.Alias?.updatedAt,
         }));
     },
     {

@@ -1,5 +1,5 @@
-import Router, { t } from 'elysia';
-import { generateRandomWords } from 'src/lib/utils';
+import Router, {t} from 'elysia';
+import {generateRandomWords} from 'src/lib/utils';
 
 import FortressMiddleware from '@Middlewares/FortressMiddleware';
 import SessionMiddleware from '@Middlewares/SessionMiddleware';
@@ -9,14 +9,13 @@ import ListenerService from '@Services/ListenerService';
 
 const aliasRouter: typeof ListenerService.app = new Router();
 
-aliasRouter.put(
+aliasRouter.post(
     '/alias',
     async ({ user }) => {
         const address = generateRandomWords(3)
             .replace(/\s+/g, '-')
             .toLowerCase();
 
-        // Find the user to get their ID
         const dbUser = await UserRepository.findUserByPublicKey(
             user?.publicKey!,
         );
@@ -62,16 +61,9 @@ aliasRouter.patch(
         }
 
         return {
-            address: alias.aliasAddress,
-            user: {
-                id: alias.userId,
-                address: alias.userAddress,
-                publicKey: alias.publicKey,
-                pgpPublicKey: alias.pgpPublicKey,
-                role: alias.role,
-                createdAt: alias.userCreatedAt,
-                updatedAt: alias.userUpdatedAt,
-            },
+            address: alias.Alias?.address,
+            createdAt: alias.Alias?.createdAt,
+            updatedAt: alias.Alias?.updatedAt,
         };
     },
     {

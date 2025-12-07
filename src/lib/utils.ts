@@ -1,5 +1,5 @@
-import bip39 from 'bip39';
-import { randomInt } from 'crypto';
+import bip39 from '../data/bip39';
+import {randomInt} from 'crypto';
 
 /**
  * Generates a space-separated string of pseudo-random words selected from the BIP39 English wordlist.
@@ -11,10 +11,8 @@ import { randomInt } from 'crypto';
  * @throws {Error} If the BIP39 English wordlist cannot be resolved or is empty.
  *
  * @remarks
- * - Expects a `bip39` object in scope providing `wordlists.english` (or a fallback `wordlists`) array.
- * - Uses `randomInt(list.length)` to choose each word; ensure `randomInt` is cryptographically secure
- *   if the result is intended for sensitive use (e.g., mnemonic generation). Otherwise the output
- *   should be treated as non-secure / decorative.
+ * - Imports the BIP39 English wordlist as an array from `../data/bip39`.
+ * - Uses Node.js `crypto.randomInt()` which is cryptographically secure.
  * - The function does not enforce uniqueness; words may repeat.
  *
  * @example
@@ -36,14 +34,15 @@ import { randomInt } from 'crypto';
 export const generateRandomWords = (length: number = 3): string => {
     if (length < 1) throw new Error('length must be at least 1');
 
-    const list = bip39.wordlists?.english || (bip39 as any).wordlists || [];
+    const list = bip39 ?? []
     if (!Array.isArray(list) || list.length === 0) {
         throw new Error('BIP39 English wordlist unavailable');
     }
 
     const words: string[] = [];
     for (let i = 0; i < length; i++) {
-        words.push(list[randomInt(list.length)]);
+        words.push(list[randomInt(list.length)]!);
     }
+
     return words.join(' ');
 };
