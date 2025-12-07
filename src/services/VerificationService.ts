@@ -1,6 +1,6 @@
-import { randomInt } from 'crypto';
+import {randomInt} from 'crypto';
 
-import { wordlist as english } from '@scure/bip39/wordlists/english';
+import bip39 from "../data/bip39";
 import EncryptionService from '@Services/EncryptionService';
 import MailingService from '@Services/MailingService';
 
@@ -17,22 +17,6 @@ class VerificationService {
     private store = new Map<string, Verification>();
     private readonly CODE_TTL_MS = 10 * 60 * 1000; // 10 minutes
     private readonly MAX_ATTEMPTS = 5;
-
-    private randomWord() {
-        return english[randomInt(0, english.length)];
-    }
-
-    private generateCode() {
-        return `${this.randomWord()} ${this.randomWord()} ${this.randomWord()}`;
-    }
-
-    private normalizeCode(code: string) {
-        return (code || '').trim().toLowerCase().replace(/\s+/g, ' ');
-    }
-
-    private isValidEmail(email?: string): email is string {
-        return !!email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-    }
 
     public async sendCode(email?: string, pgp?: string | null) {
         const normalizedEmail = (email || '').trim().toLowerCase();
@@ -116,6 +100,22 @@ class VerificationService {
         }
 
         this.store.delete(normalizedEmail);
+    }
+
+    private randomWord() {
+        return bip39[randomInt(0, bip39.length)];
+    }
+
+    private generateCode() {
+        return `${this.randomWord()} ${this.randomWord()} ${this.randomWord()}`;
+    }
+
+    private normalizeCode(code: string) {
+        return (code || '').trim().toLowerCase().replace(/\s+/g, ' ');
+    }
+
+    private isValidEmail(email?: string): email is string {
+        return !!email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
     }
 }
 
