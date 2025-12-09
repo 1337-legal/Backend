@@ -1,6 +1,6 @@
 # 🛡️ 1337.legal Backend
 
-Privacy‑first alias & session API built on the Blindflare Protocol (📜 whitepaper: https://www.blindflare.org/whitepaper.pdf).  
+Privacy‑first alias & session API built on the Blindflare Protocol.  
 Current focus: secure handshake, auth, session key wrapping, and alias generation
 
 ---
