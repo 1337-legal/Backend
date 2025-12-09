@@ -38,20 +38,7 @@ class AliasRepository extends BaseRepository {
             .selectFrom('Alias')
             .innerJoin('User', 'Alias.userId', 'User.id')
             .where('User.publicKey', '=', publicKey)
-            .select((eb) => [
-                jsonObjectFrom(
-                    eb
-                        .selectFrom('Alias as a')
-                        .selectAll()
-                        .whereRef('a.address', '=', 'Alias.address'),
-                ).as('Alias'),
-                jsonObjectFrom(
-                    eb
-                        .selectFrom('User')
-                        .selectAll()
-                        .whereRef('User.id', '=', 'Alias.userId'),
-                ).as('User'),
-            ])
+            .selectAll('Alias')
             .execute();
     }
 }
