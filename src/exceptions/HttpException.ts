@@ -9,3 +9,5 @@ class HttpException extends Error {
         Object.setPrototypeOf(this, HttpException.prototype);
     }
 }
+
+export default HttpException;

@@ -3,7 +3,7 @@
     "version": "1.0.50",
     "module": "src/main.ts",
     "scripts": {
-        "test": "echo \"Error: no test specified\" && exit 1",
+        "test": "bun test",
         "dev": "bun run --watch src/main.ts",
         "start": "bun run src/main.ts"
     },

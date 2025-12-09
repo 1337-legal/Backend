@@ -106,8 +106,6 @@ aliasRouter.patch(
 aliasRouter.get(
     '/alias',
     async ({ user }) => {
-        if (!user) throw new Error('Unauthorized');
-
         return await AliasRepository.getAllByUser(user.publicKey);
     },
     {
