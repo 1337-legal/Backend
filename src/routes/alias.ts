@@ -9,7 +9,7 @@ import ListenerService from '@Services/ListenerService';
 
 const aliasRouter: typeof ListenerService.app = new Router();
 
-aliasRouter.post(
+aliasRouter.put(
     '/alias',
     async ({ user }) => {
         const address = generateRandomWords(3)
