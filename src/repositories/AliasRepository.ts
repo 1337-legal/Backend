@@ -41,6 +41,13 @@ class AliasRepository extends BaseRepository {
             .selectAll('Alias')
             .execute();
     }
+
+    async deleteAliasByAddress(address: string) {
+        return this.database
+            .deleteFrom('Alias')
+            .where('Alias.address', '=', address)
+            .executeTakeFirst();
+    }
 }
 
 export default new AliasRepository();
