@@ -38,7 +38,7 @@ aliasRouter.put(
             FortressMiddleware.handleRequest,
         ],
         afterHandle: FortressMiddleware.handleResponse,
-        detail: 'Create an alias',
+        detail: 'Create an alias.',
         body: t.Object({
             blindflare: t.Object({
                 type: t.Literal('TX'),
@@ -103,6 +103,57 @@ aliasRouter.patch(
     },
 );
 
+aliasRouter.delete(
+    '/alias/:address',
+    async ({ params }) => {
+        const { address } = params;
+
+        const alias = await AliasRepository.deleteAliasByAddress(address);
+        if (!alias) {
+            throw new Error('Alias not found');
+        }
+
+        return {
+            message: 'Alias deleted successfully',
+        };
+    },
+    {
+        beforeHandle: [
+            SessionMiddleware.auth,
+            FortressMiddleware.handleRequest,
+        ],
+        afterHandle: [FortressMiddleware.handleResponse],
+        detail: 'Delete an alias by its address.',
+        body: t.Object({
+            blindflare: t.Object({
+                type: t.Literal('TX', {
+                    description: 'Type of the Blindflare protocol.',
+                }),
+                payload: t.Object({
+                    data: t.String({
+                        description:
+                            'Encrypted data containing the alias information.\n',
+                    }),
+                    iv: t.String({
+                        description:
+                            'Initialization vector for the encryption.',
+                    }),
+                    tag: t.String({
+                        description: 'Authentication tag for the encryption.',
+                    }),
+                    ephemeralPublicKey: t.String({
+                        description:
+                            'Ephemeral public key used for the encryption.',
+                    }),
+                }),
+                version: t.String({
+                    description: 'Version of the Blindflare protocol.',
+                }),
+            }),
+        }),
+    },
+)
+
 aliasRouter.get(
     '/alias',
     async ({ user }) => {
@@ -114,6 +165,34 @@ aliasRouter.get(
             FortressMiddleware.handleRequest,
         ],
         afterHandle: [FortressMiddleware.handleResponse],
+        detail: 'Get all aliases for the authenticated user.',
+        body: t.Object({
+            blindflare: t.Object({
+                type: t.Literal('TX', {
+                    description: 'Type of the Blindflare protocol.',
+                }),
+                payload: t.Object({
+                    data: t.String({
+                        description:
+                            'Encrypted data containing the alias information.\n',
+                    }),
+                    iv: t.String({
+                        description:
+                            'Initialization vector for the encryption.',
+                    }),
+                    tag: t.String({
+                        description: 'Authentication tag for the encryption.',
+                    }),
+                    ephemeralPublicKey: t.String({
+                        description:
+                            'Ephemeral public key used for the encryption.',
+                    }),
+                }),
+                version: t.String({
+                    description: 'Version of the Blindflare protocol.',
+                }),
+            }),
+        }),
     },
 );
 
