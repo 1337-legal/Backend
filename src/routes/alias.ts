@@ -60,10 +60,16 @@ aliasRouter.patch(
             throw new Error('Alias not found');
         }
 
+        const updatedAlias = await AliasRepository.updateAliasStatus(
+            address,
+            !alias.Alias?.enabled,
+        );
+
         return {
-            address: alias.Alias?.address,
-            createdAt: alias.Alias?.createdAt,
-            updatedAt: alias.Alias?.updatedAt,
+            address: updatedAlias?.address,
+            enabled: updatedAlias?.enabled,
+            createdAt: updatedAlias?.createdAt,
+            updatedAt: updatedAlias?.updatedAt,
         };
     },
     {
