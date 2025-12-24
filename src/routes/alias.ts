@@ -9,6 +9,48 @@ import ListenerService from '@Services/ListenerService';
 
 const aliasRouter: typeof ListenerService.app = new Router();
 
+aliasRouter.get(
+    '/alias',
+    async ({ user }) => {
+        return await AliasRepository.getAllByUser(user.publicKey);
+    },
+    {
+        beforeHandle: [
+            SessionMiddleware.auth,
+            FortressMiddleware.handleRequest,
+        ],
+        afterHandle: [FortressMiddleware.handleResponse],
+        detail: 'Get all aliases for the authenticated user.',
+        body: t.Object({
+            blindflare: t.Object({
+                type: t.Literal('TX', {
+                    description: 'Type of the Blindflare protocol.',
+                }),
+                payload: t.Object({
+                    data: t.String({
+                        description:
+                            'Encrypted data containing the alias information.\n',
+                    }),
+                    iv: t.String({
+                        description:
+                            'Initialization vector for the encryption.',
+                    }),
+                    tag: t.String({
+                        description: 'Authentication tag for the encryption.',
+                    }),
+                    ephemeralPublicKey: t.String({
+                        description:
+                            'Ephemeral public key used for the encryption.',
+                    }),
+                }),
+                version: t.String({
+                    description: 'Version of the Blindflare protocol.',
+                }),
+            }),
+        }),
+    },
+);
+
 aliasRouter.put(
     '/alias',
     async ({ user }) => {
@@ -159,47 +201,5 @@ aliasRouter.delete(
         }),
     },
 )
-
-aliasRouter.get(
-    '/alias',
-    async ({ user }) => {
-        return await AliasRepository.getAllByUser(user.publicKey);
-    },
-    {
-        beforeHandle: [
-            SessionMiddleware.auth,
-            FortressMiddleware.handleRequest,
-        ],
-        afterHandle: [FortressMiddleware.handleResponse],
-        detail: 'Get all aliases for the authenticated user.',
-        body: t.Object({
-            blindflare: t.Object({
-                type: t.Literal('TX', {
-                    description: 'Type of the Blindflare protocol.',
-                }),
-                payload: t.Object({
-                    data: t.String({
-                        description:
-                            'Encrypted data containing the alias information.\n',
-                    }),
-                    iv: t.String({
-                        description:
-                            'Initialization vector for the encryption.',
-                    }),
-                    tag: t.String({
-                        description: 'Authentication tag for the encryption.',
-                    }),
-                    ephemeralPublicKey: t.String({
-                        description:
-                            'Ephemeral public key used for the encryption.',
-                    }),
-                }),
-                version: t.String({
-                    description: 'Version of the Blindflare protocol.',
-                }),
-            }),
-        }),
-    },
-);
 
 export default aliasRouter;
