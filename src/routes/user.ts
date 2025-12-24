@@ -8,7 +8,6 @@ import ListenerService from '@Services/ListenerService';
 
 const userRouter: typeof ListenerService.app = new Router();
 
-// Get current user profile
 userRouter.get(
     '/user',
     async ({ user }) => {
@@ -30,7 +29,6 @@ userRouter.get(
     },
 );
 
-// Update current user profile (address and/or pgpPublicKey)
 userRouter.patch(
     '/user',
     async ({ user, body }) => {
@@ -79,18 +77,23 @@ userRouter.patch(
     },
 );
 
-userRouter.get(
-    '/alias',
+userRouter.delete(
+    '/user',
     async ({ user }) => {
         if (!user) throw new Error('Unauthorized');
 
-        const aliases = await AliasRepository.getAllByUser(user.publicKey);
+        const existing = await UserRepository.findUserByPublicKey(
+            user.publicKey,
+        );
+        if (!existing) throw new Error('User not found');
 
-        return aliases.map((alias) => ({
-            address: alias.Alias?.address,
-            createdAt: alias.Alias?.createdAt,
-            updatedAt: alias.Alias?.updatedAt,
-        }));
+        // Delete all aliases first (foreign key constraint)
+        await AliasRepository.deleteAllByUserId(existing.id);
+
+        // Delete the user
+        await UserRepository.deleteUser(existing.id);
+
+        return { success: true };
     },
     {
         beforeHandle: [
@@ -100,5 +103,7 @@ userRouter.get(
         afterHandle: [FortressMiddleware.handleResponse],
     },
 );
+
+
 
 export default userRouter;

@@ -49,6 +49,13 @@ class AliasRepository extends BaseRepository {
             .executeTakeFirst();
     }
 
+    async deleteAllByUserId(userId: number) {
+        return this.database
+            .deleteFrom('Alias')
+            .where('Alias.userId', '=', userId)
+            .execute();
+    }
+
     async updateAliasStatus(address: string, enabled: boolean) {
         return this.database
             .updateTable('Alias')
