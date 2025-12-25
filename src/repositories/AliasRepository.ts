@@ -56,10 +56,10 @@ class AliasRepository extends BaseRepository {
             .execute();
     }
 
-    async updateAliasStatus(address: string, enabled: boolean) {
+    async updateAliasStatus(address: string, status: "active" | "disabled") {
         return this.database
             .updateTable('Alias')
-            .set({ enabled })
+            .set({status})
             .where('Alias.address', '=', address)
             .returningAll()
             .executeTakeFirst();

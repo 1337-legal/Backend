@@ -9,6 +9,7 @@ interface AliasJsonResult {
     address: string;
     createdAt: string;
     id: number;
+    status: 'active' | 'disabled';
     updatedAt: string;
     userId: number;
 }
@@ -21,7 +22,6 @@ interface UserJsonResult {
     publicKey: string;
     role: 'guest' | 'user';
     updatedAt: string;
-    userId: number;
 }
 
 interface AliasWithUserResult {
@@ -31,7 +31,6 @@ interface AliasWithUserResult {
 
 type GetAllByUserResult = Awaited<ReturnType<typeof AliasRepository.getAllByUser>>;
 
-// Mock database instance
 const mockExecuteTakeFirst = mock<() => Promise<UserRecord | AliasRecord | undefined>>(() =>
     Promise.resolve(undefined)
 );
@@ -55,6 +54,7 @@ const mockSelectFrom = mock(() => ({
     innerJoin: mock(() => ({
         where: mock(() => ({
             select: mock(() => ({execute: mockExecute})),
+            selectAll: mock(() => ({execute: mockExecute})),
         })),
     })),
     select: mock(() => ({executeTakeFirst: mockExecuteTakeFirst})),
@@ -91,10 +91,10 @@ function createMockUser(overrides: Partial<UserRecord> = {}): UserRecord {
         address: 'test@example.com',
         role: 'user',
         pgpPublicKey: null,
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
         ...overrides,
-    };
+    } as UserRecord;
 }
 
 function createMockAlias(overrides: Partial<AliasRecord> = {}): AliasRecord {
@@ -102,10 +102,11 @@ function createMockAlias(overrides: Partial<AliasRecord> = {}): AliasRecord {
         id: 1,
         address: 'alias@example.com',
         userId: 1,
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        status: 'active',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
         ...overrides,
-    };
+    } as AliasRecord;
 }
 
 describe('UserRepository', () => {
@@ -222,7 +223,7 @@ describe('AliasRepository', () => {
         test('should return alias with user when found', async () => {
             const now = new Date().toISOString();
             const mockResult: AliasWithUserResult = {
-                Alias: {id: 1, address: 'alias@example.com', userId: 1, createdAt: now, updatedAt: now},
+                Alias: {id: 1, address: 'alias@example.com', userId: 1, status: 'active', createdAt: now, updatedAt: now},
                 User: {
                     id: 1,
                     publicKey: 'test-key',
@@ -230,8 +231,7 @@ describe('AliasRepository', () => {
                     role: 'user',
                     pgpPublicKey: null,
                     createdAt: now,
-                    updatedAt: now,
-                    userId: 1
+                    updatedAt: now
                 },
             };
             mockExecuteTakeFirst.mockResolvedValueOnce(mockResult as unknown as UserRecord);
@@ -239,7 +239,7 @@ describe('AliasRepository', () => {
             const result = await AliasRepository.getAliasByAddress('alias@example.com');
 
             expect(mockDatabase.selectFrom).toHaveBeenCalledWith('Alias');
-            expect(result).toEqual(mockResult);
+            expect(result).toEqual(mockResult as unknown as typeof result);
         });
 
         test('should return undefined when alias not found', async () => {
@@ -256,7 +256,7 @@ describe('AliasRepository', () => {
             const now = new Date().toISOString();
             const mockResults: AliasWithUserResult[] = [
                 {
-                    Alias: {id: 1, address: 'alias1@example.com', userId: 1, createdAt: now, updatedAt: now},
+                    Alias: {id: 1, address: 'alias1@example.com', userId: 1, status: 'active', createdAt: now, updatedAt: now},
                     User: {
                         id: 1,
                         publicKey: 'test-key',
@@ -264,12 +264,11 @@ describe('AliasRepository', () => {
                         role: 'user',
                         pgpPublicKey: null,
                         createdAt: now,
-                        updatedAt: now,
-                        userId: 1
+                        updatedAt: now
                     },
                 },
                 {
-                    Alias: {id: 2, address: 'alias2@example.com', userId: 1, createdAt: now, updatedAt: now},
+                    Alias: {id: 2, address: 'alias2@example.com', userId: 1, status: 'active', createdAt: now, updatedAt: now},
                     User: {
                         id: 1,
                         publicKey: 'test-key',
@@ -277,11 +276,11 @@ describe('AliasRepository', () => {
                         role: 'user',
                         pgpPublicKey: null,
                         createdAt: now,
-                        updatedAt: now,
-                        userId: 1
+                        updatedAt: now
                     },
                 },
             ];
+
             mockExecute.mockResolvedValueOnce(mockResults);
 
             const result = await AliasRepository.getAllByUser('test-key');
