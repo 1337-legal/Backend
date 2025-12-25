@@ -19,35 +19,7 @@ aliasRouter.get(
             SessionMiddleware.auth,
             FortressMiddleware.handleRequest,
         ],
-        afterHandle: [FortressMiddleware.handleResponse],
-        detail: 'Get all aliases for the authenticated user.',
-        body: t.Object({
-            blindflare: t.Object({
-                type: t.Literal('TX', {
-                    description: 'Type of the Blindflare protocol.',
-                }),
-                payload: t.Object({
-                    data: t.String({
-                        description:
-                            'Encrypted data containing the alias information.\n',
-                    }),
-                    iv: t.String({
-                        description:
-                            'Initialization vector for the encryption.',
-                    }),
-                    tag: t.String({
-                        description: 'Authentication tag for the encryption.',
-                    }),
-                    ephemeralPublicKey: t.String({
-                        description:
-                            'Ephemeral public key used for the encryption.',
-                    }),
-                }),
-                version: t.String({
-                    description: 'Version of the Blindflare protocol.',
-                }),
-            }),
-        }),
+        afterHandle: FortressMiddleware.handleResponse
     },
 );
 
@@ -80,10 +52,25 @@ aliasRouter.put(
             FortressMiddleware.handleRequest,
         ],
         afterHandle: FortressMiddleware.handleResponse,
-        detail: 'Create an alias.',
+        detail: 'Create a new alias for the authenticated user.',
         body: t.Object({
             blindflare: t.Object({
-                type: t.Literal('TX'),
+                type: t.Literal('TX', {
+                    description: 'Type of the Blindflare protocol.',
+                }),
+                payload: t.Object({
+                    data: t.String({
+                        description:
+                            'Encrypted data containing the alias information.\n',
+                    }),
+                    iv: t.String({
+                        description:
+                            'Initialization vector for the encryption.',
+                    }),
+                    tag: t.String({
+                        description: 'Authentication tag for the encryption.',
+                    }),
+                }),
                 version: t.String({
                     description: 'Version of the Blindflare protocol.',
                 }),
@@ -119,8 +106,8 @@ aliasRouter.patch(
             SessionMiddleware.auth,
             FortressMiddleware.handleRequest,
         ],
-        afterHandle: [FortressMiddleware.handleResponse],
-        detail: 'Change alias status. This can be used to enable or disable an alias.',
+        afterHandle: FortressMiddleware.handleResponse,
+        detail: 'Toggle alias status between active and disabled.',
         body: t.Object({
             blindflare: t.Object({
                 type: t.Literal('TX', {
@@ -137,10 +124,6 @@ aliasRouter.patch(
                     }),
                     tag: t.String({
                         description: 'Authentication tag for the encryption.',
-                    }),
-                    ephemeralPublicKey: t.String({
-                        description:
-                            'Ephemeral public key used for the encryption.',
                     }),
                 }),
                 version: t.String({
@@ -188,10 +171,6 @@ aliasRouter.delete(
                     }),
                     tag: t.String({
                         description: 'Authentication tag for the encryption.',
-                    }),
-                    ephemeralPublicKey: t.String({
-                        description:
-                            'Ephemeral public key used for the encryption.',
                     }),
                 }),
                 version: t.String({
