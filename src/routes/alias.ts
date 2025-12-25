@@ -104,12 +104,12 @@ aliasRouter.patch(
 
         const updatedAlias = await AliasRepository.updateAliasStatus(
             address,
-            !alias.Alias?.enabled,
+            alias.Alias?.status === 'active' ? 'disabled' : 'active',
         );
 
         return {
             address: updatedAlias?.address,
-            enabled: updatedAlias?.enabled,
+            status: updatedAlias?.status,
             createdAt: updatedAlias?.createdAt,
             updatedAt: updatedAlias?.updatedAt,
         };
