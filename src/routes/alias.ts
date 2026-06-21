@@ -134,6 +134,53 @@ aliasRouter.patch(
     },
 );
 
+aliasRouter.patch(
+    '/alias/:address/nickname',
+    async ({ params, body }) => {
+        const { address } = params;
+        const nickname = (body as any)?.nickname ?? null;
+
+        const updated = await AliasRepository.updateAliasNickname(address, nickname);
+        if (!updated) {
+            throw new Error('Alias not found');
+        }
+
+        return {
+            address: updated.address,
+            nickname: updated.nickname,
+        };
+    },
+    {
+        beforeHandle: [
+            SessionMiddleware.auth,
+            FortressMiddleware.handleRequest,
+        ],
+        afterHandle: FortressMiddleware.handleResponse,
+        detail: 'Set or clear the nickname for an alias.',
+        body: t.Object({
+            blindflare: t.Object({
+                type: t.Literal('TX', {
+                    description: 'Type of the Blindflare protocol.',
+                }),
+                payload: t.Object({
+                    data: t.String({
+                        description: 'Encrypted data containing the nickname.',
+                    }),
+                    iv: t.String({
+                        description: 'Initialization vector for the encryption.',
+                    }),
+                    tag: t.String({
+                        description: 'Authentication tag for the encryption.',
+                    }),
+                }),
+                version: t.String({
+                    description: 'Version of the Blindflare protocol.',
+                }),
+            }),
+        }),
+    },
+);
+
 aliasRouter.delete(
     '/alias/:address',
     async ({ params }) => {

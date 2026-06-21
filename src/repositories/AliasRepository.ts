@@ -64,6 +64,15 @@ class AliasRepository extends BaseRepository {
             .returningAll()
             .executeTakeFirst();
     }
+
+    async updateAliasNickname(address: string, nickname: string | null) {
+        return this.database
+            .updateTable('Alias')
+            .set({nickname})
+            .where('Alias.address', '=', address)
+            .returningAll()
+            .executeTakeFirst();
+    }
 }
 
 export default new AliasRepository();

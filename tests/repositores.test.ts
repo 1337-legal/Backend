@@ -251,6 +251,28 @@ describe('AliasRepository', () => {
         });
     });
 
+    describe('updateAliasNickname', () => {
+        test('should update and return alias with new nickname', async () => {
+            const updatedAlias = createMockAlias({address: 'alias@example.com'});
+            mockExecuteTakeFirst.mockResolvedValueOnce({...updatedAlias, nickname: 'Newsletter signups'} as unknown as AliasRecord);
+
+            const result = await AliasRepository.updateAliasNickname('alias@example.com', 'Newsletter signups');
+
+            expect(mockDatabase.updateTable).toHaveBeenCalledWith('Alias');
+            expect(result).toMatchObject({nickname: 'Newsletter signups'});
+        });
+
+        test('should clear nickname when set to null', async () => {
+            const updatedAlias = createMockAlias({address: 'alias@example.com'});
+            mockExecuteTakeFirst.mockResolvedValueOnce({...updatedAlias, nickname: null} as unknown as AliasRecord);
+
+            const result = await AliasRepository.updateAliasNickname('alias@example.com', null);
+
+            expect(mockDatabase.updateTable).toHaveBeenCalledWith('Alias');
+            expect(result).toMatchObject({nickname: null});
+        });
+    });
+
     describe('getAllByUser', () => {
         test('should return all aliases for a user', async () => {
             const now = new Date().toISOString();
